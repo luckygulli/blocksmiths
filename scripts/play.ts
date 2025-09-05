@@ -32,6 +32,18 @@ let posX = 0;
 let posY = 0;
 
 // ---------------------------
+// Initialize position on-chain
+// ---------------------------
+async function initializePosition() {
+  try {
+    await boardContract.initPosition(posX, posY);
+    console.log(`Initialized position at (${posX}, ${posY})`);
+  } catch (err: any) {
+    console.log("Position already initialized:", err.message);
+  }
+}
+
+// ---------------------------
 // Frame handler
 // ---------------------------
 const frameHandler = (instance: any) => {
@@ -45,8 +57,6 @@ const frameHandler = (instance: any) => {
 
   instance.drawFrame(frameData, BOARD_WIDTH, BOARD_HEIGHT);
 };
-
-
 
 // ---------------------------
 // Key press handler
@@ -74,7 +84,6 @@ const keypressHandler = async (instance: any, keyName: string) => {
   }
 
   try {
-    // Move on-chain (distance 1 enforced by contract)
     await boardContract.move(newX, newY);
     posX = newX;
     posY = newY;
@@ -86,10 +95,16 @@ const keypressHandler = async (instance: any, keyName: string) => {
 };
 
 // ---------------------------
-// Create terminal game
+// Run the game
 // ---------------------------
-TerminalGameIO.createTerminalGameIo({
-  fps: 2,
-  frameHandler,
-  keypressHandler,
-});
+async function main() {
+  await initializePosition();
+
+  TerminalGameIO.createTerminalGameIo({
+    fps: 2,
+    frameHandler,
+    keypressHandler,
+  });
+}
+
+main().catch(console.error);
