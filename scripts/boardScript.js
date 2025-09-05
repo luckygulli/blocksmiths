@@ -5,6 +5,8 @@ import { ethers } from "ethers";
     const provider = new ethers.providers.Web3Provider(web3Provider);
     const signer = provider.getSigner();
 
+    console.log("Using " + await signer.getAddress())
+
     // ABI of the Board contract
     const abi = [
         "function initPosition(int256 x, int256 y)",
@@ -18,10 +20,10 @@ import { ethers } from "ethers";
     const board = new ethers.Contract(contractAddress, abi, signer);
 
     // Initialize position
-   /* let tx = await board.initPosition(0, 0);
+    let tx = await board.initPosition(0, 0);
     await tx.wait();
     console.log("Position initialized to (0,0)");
-*/
+
     // Move right
     tx = await board.move(1, 1);
     await tx.wait();
