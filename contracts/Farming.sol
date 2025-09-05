@@ -32,6 +32,10 @@ contract Farming {
     mapping(string => ResourcePosition[]) public resourcePositions;
     mapping(address => ResourceCount[]) public playerResources;
 
+    // board boundaries (must match frontend)
+    int256 public constant BOARD_WIDTH = 20;
+    int256 public constant BOARD_HEIGHT = 10;
+
     constructor() {
         resources["wood"] = Resource("wood", "Wood", 3, 1);
         resources["stone"] = Resource("stone", "Stone", 2, 3);
@@ -71,18 +75,18 @@ contract Farming {
 
     function random() private view returns (int256, int256) {
         uint randX = uint(keccak256(abi.encodePacked(block.prevrandao, block.timestamp, msg.sender)));
-        int256 x = int256(randX % 20);
+        int256 x = int256(randX % uint(BOARD_WIDTH));
 
         uint randY = uint(keccak256(abi.encodePacked(block.prevrandao, block.timestamp, msg.sender)));
-        int256 y = int256(randY % 10);
+        int256 y = int256(randY % uint(BOARD_HEIGHT));
 
         return (x, y);
     }
 
-    function isPositionTaken(int x, int y) private view returns (bool) {
+    function isPositionTaken(int256 x, int256 y) private view returns (bool) {
         for (uint i = 0; i < resourceIds.length; i++) {
             string memory resourceId = resourceIds[i];
-            for (uint j = 0; j < resourcePositions[resourceIds[i]].length; j++) {
+            for (uint j = 0; j < resourcePositions[resourceId].length; j++) {
                 ResourcePosition memory resourcePosition = resourcePositions[resourceId][j];
                 if (resourcePosition.x == x && resourcePosition.y == y) {
                     return true;
@@ -92,14 +96,23 @@ contract Farming {
         return false;
     }
 
+    // helper to check bounds
+    function isWithinBounds(int256 x, int256 y) private pure returns (bool) {
+        return x >= 0 && x < BOARD_WIDTH && y >= 0 && y < BOARD_HEIGHT;
+    }
+
     function getResource(string calldata id) external view returns (Resource memory) {
         require(isKeyValid(id), "Resource does not exist");
-        Resource memory resource = resources[id];
-        return resource; 
+        return resources[id]; 
     }
 
     function getResourcePositions() external view returns (ResourcePosition[] memory) {
-        ResourcePosition[] memory result = new ResourcePosition[](5);
+        uint total = 0;
+        for (uint i = 0; i < resourceIds.length; i++) {
+            total += resourcePositions[resourceIds[i]].length;
+        }
+
+        ResourcePosition[] memory result = new ResourcePosition[](total);
         uint pos = 0;
         for (uint i = 0; i < resourceIds.length; i++) {
             string memory resourceId = resourceIds[i];
@@ -107,14 +120,12 @@ contract Farming {
                 ResourcePosition memory position = resourcePositions[resourceId][j];
                 result[pos++] = position;
             }
-            
         }
         return result;
     }
 
-
     function farm(string calldata resourceId, int256 x, int256 y) external {
-        // validate that resource exists
+        require(isWithinBounds(x, y), "Position out of bounds"); // boundary check
         uint256 index = resourcePositions[resourceId].length;
         for (uint24 i = 0; i < resourcePositions[resourceId].length; i++) {
             if (resourcePositions[resourceId][i].x == x && resourcePositions[resourceId][i].y == y) {
@@ -123,7 +134,7 @@ contract Farming {
         }
         require(index != resourcePositions[resourceId].length, "Resource position does not exist");
 
-        // create new resource
+        // generate new resource position within bounds
         int256 newX;
         int256 newY;
         (newX, newY) = random();
@@ -134,7 +145,7 @@ contract Farming {
         resourcePositions[resourceId][index] = ResourcePosition(resourceId, newX, newY);
         emit NewResourcePosition(resourceId, newX, newY);
 
-        // add resource to players inventory
+        // add resource to player's inventory
         uint256 resourceIndex = playerResources[msg.sender].length;
         for (uint24 i = 0; i < playerResources[msg.sender].length; i++) {
             if (compareResourceIdsMemory(resourceId, playerResources[msg.sender][i].resourceId)) {
