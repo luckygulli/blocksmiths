@@ -7,8 +7,8 @@ import { ResourcePosition } from "./Farming.js";
 const Key = TerminalGameIo.Key;
 
 // ========== CONFIG ==========
-const boardAddress = "0x5FbDB2315678afecb367f032d93F642f64180aa3";
-const farmingAddress = "0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512";
+const boardAddress = "0x72662E4da74278430123cE51405c1e7A1B87C294";
+const farmingAddress = "0x52bad4A8584909895C22bdEcf8DBF33314468Fb0";
 const RPC_URL = "http://127.0.0.1:8545";
 
 // pick 2 different random accounts
@@ -172,27 +172,8 @@ async function getResourcePositions() {
 }
 
 async function getInitialLeaderboard() {
-  for (const player of players) {
-    const resources = await farmingContract.getResourceCount(player);
-    const leaderboardEntry = {address: player, wood: 0, stone: 0};
-    for (const resource of resources) {
-      leaderboardEntry[resource.resourceId] = resource.count;
-    }
-  }
-}
-
-function sortLeaderboard() {
-  leaderboard = leaderboard.sort((a, b) => {
-    const totalA = a.wood + a.stone;
-    const totalB = b.wood + b.stone;
-    return totalB - totalA;
-  });
-}
-
-async function getInitialLeaderboard() {
-  const players = await boardContract.getAllPlayers();
   for (const player of playerAddresses) {
-    const resources = await farmingContract.getResourceCount(player);
+    const resources = await farmingContracts[0].getResourceCount(player);
     const leaderboardEntry = {address: player, wood: 0, stone: 0};
     for (const resource of resources) {
       leaderboardEntry[resource.resourceId] = resource.count;
@@ -226,20 +207,6 @@ farmingContracts[1].on("NewResourcePosition", async () => { await getResourcePos
 
 
 farmingContracts[0].on("ResourceFarmed", (resourceId, address) => {
-  for (const player of leaderboard) {
-    if (player.address == address) {
-      player[resourceId]++;
-      return;
-    }
-  }
-  const newPlayer = {address: address, wood: 0, stone: 0};
-  newPlayer[resourceId]++;
-  leaderboard.push(newPlayer);
-
-  sortLeaderboard();
-})
-
-farmingContracts[1].on("ResourceFarmed", (resourceId, address) => {
   for (const player of leaderboard) {
     if (player.address == address) {
       player[resourceId]++;
