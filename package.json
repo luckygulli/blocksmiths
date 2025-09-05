@@ -1,0 +1,41 @@
+{
+  "name": "blocksmiths",
+  "version": "1.0.0",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/luckygulli/blocksmiths.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/luckygulli/blocksmiths/issues"
+  },
+  "homepage": "https://github.com/luckygulli/blocksmiths#readme",
+  "description": "This project showcases a Hardhat 3 Beta project using `mocha` for tests and the `ethers` library for Ethereum interactions.",
+  "devDependencies": {
+    "@nomicfoundation/hardhat-ignition": "^3.0.2",
+    "@nomicfoundation/hardhat-toolbox-mocha-ethers": "^3.0.0",
+    "@types/chai": "^4.3.20",
+    "@types/chai-as-promised": "^8.0.2",
+    "@types/mocha": "^10.0.10",
+    "@types/node": "^22.18.1",
+    "chai": "^5.3.3",
+    "forge-std": "github:foundry-rs/forge-std#v1.9.4",
+    "hardhat": "^3.0.4",
+    "mocha": "^11.7.2",
+    "typescript": "~5.8.0"
+  },
+  "dependencies": {
+    "ethers": "^6.15.0",
+    "terminal-game-io": "^3.1.0"
+  },
+  "type": "module",
+  "directories": {
+    "test": "test"
+  }
+}
