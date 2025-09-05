@@ -13,12 +13,8 @@ const farmingAddress = "0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512";
 const RPC_URL = "http://127.0.0.1:8545";
 
 // Load ABIs
-const boardArtifact = JSON.parse(
-  fs.readFileSync(path.join("artifacts/contracts/Board.sol/Board.json"), "utf8")
-);
-const farmingArtifact = JSON.parse(
-  fs.readFileSync(path.join("artifacts/contracts/Farming.sol/Farming.json"), "utf8")
-);
+const boardArtifact = JSON.parse(fs.readFileSync(path.join("artifacts/contracts/Board.sol/Board.json"), "utf8"));
+const farmingArtifact = JSON.parse(fs.readFileSync(path.join("artifacts/contracts/Farming.sol/Farming.json"), "utf8"));
 
 const provider = new ethers.JsonRpcProvider(RPC_URL);
 const boardContract = new ethers.Contract(boardAddress, boardArtifact.abi, provider);
@@ -30,6 +26,7 @@ let history: HistoryEvent[] = [];
 let frameIndex = 0;
 let positions: Record<string, { x: number; y: number }> = {};
 let resourcePositions: ResourcePosition[] = [];
+let leaderboard: { address: string; wood: number; stone: number }[] = [];
 
 // ---------- Load history ----------
 async function loadHistory() {
@@ -51,7 +48,12 @@ async function loadHistory() {
   allEvents.push(
     ...farmEvents.map((e) => ({
       type: "ResourceFarmed",
-      data: { resourceId: e.args?.resourceId, user: e.args?.user, x: Number(e.args?.x), y: Number(e.args?.y) },
+      data: {
+        resourceId: e.args?.resourceId,
+        user: e.args?.user,
+        x: Number(e.args?.x),
+        y: Number(e.args?.y),
+      },
       blockNumber: e.blockNumber,
       logIndex: e.logIndex,
     }))
@@ -83,10 +85,25 @@ function applyEvent(ev: HistoryEvent) {
   } else if (ev.type === "NewResourcePosition") {
     resourcePositions.push({ resourceId: ev.data.resourceId, x: ev.data.x, y: ev.data.y });
   } else if (ev.type === "ResourceFarmed") {
+    // remove resource from board
     resourcePositions = resourcePositions.filter(
       (r) => !(r.resourceId === ev.data.resourceId && r.x === ev.data.x && r.y === ev.data.y)
     );
+
+    // update leaderboard
+    let entry = leaderboard.find((p) => p.address.toLowerCase() === ev.data.user.toLowerCase());
+    if (!entry) {
+      entry = { address: ev.data.user, wood: 0, stone: 0 };
+      leaderboard.push(entry);
+    }
+    entry[ev.data.resourceId] += 1;
+
+    sortLeaderboard();
   }
+}
+
+function sortLeaderboard() {
+  leaderboard.sort((a, b) => (b.wood + b.stone) - (a.wood + a.stone));
 }
 
 // ---------- Draw frame ----------
@@ -102,6 +119,7 @@ function drawFrame(instance: any, index: number) {
   let frameData = "";
 
   for (let y = -1; y <= BOARD_HEIGHT; y++) {
+    let line = "";
     for (let x = -1; x <= BOARD_WIDTH; x++) {
       let char = " ";
 
@@ -129,18 +147,31 @@ function drawFrame(instance: any, index: number) {
         }
 
         // players
-        for (const pos of Object.values(positions)) {
+        for (const [addr, pos] of Object.entries(positions)) {
           if (pos.x === x && pos.y === y) {
             char = "O";
           }
         }
-
       }
-      frameData += char;
+      line += char;
     }
+
+    // leaderboard on the right
+    if (y >= 0 && y < leaderboard.length) {
+      const p = leaderboard[y];
+      const leaderboardStr = `   ${p.address.slice(0, 6)} | W:${mapToLeaderboard(p.wood)} S:${mapToLeaderboard(p.stone)}`;
+      line += leaderboardStr;
+    }
+
+    frameData += line.padEnd(100, " ");
+
   }
 
-  instance.drawFrame(frameData, BOARD_WIDTH + 2, BOARD_HEIGHT + 2);
+  instance.drawFrame(frameData, 100, BOARD_HEIGHT + 2);
+}
+
+function mapToLeaderboard(value: number) {
+  return value.toString().padStart(4, "0");
 }
 
 // ---------- Main ----------
