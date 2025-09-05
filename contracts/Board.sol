@@ -12,12 +12,17 @@ contract Board {
     }
 
     mapping(address => Position) public positions;
+    address[] private players; // ✅ minimal addition
 
     event PositionSet(address indexed player, int256 x, int256 y);
 
     function initPosition(int256 x, int256 y) external {
         require(!positions[msg.sender].initialized, "Already initialized");
         positions[msg.sender] = Position(x, y, true);
+
+        // ✅ record this player once
+        players.push(msg.sender);
+
         emit PositionSet(msg.sender, x, y);
     }
 
@@ -40,5 +45,10 @@ contract Board {
         Position memory pos = positions[player];
         require(pos.initialized, "Player not initialized");
         return (pos.x, pos.y);
+    }
+
+    // ✅ minimal addition to expose player list
+    function getAllPlayers() external view returns (address[] memory) {
+        return players;
     }
 }
