@@ -23,7 +23,7 @@ contract Farming {
         uint24 count;
     }
 
-    event ResourceFarmed(string resourceId, address indexed user, int256 x, int256 y);
+    event ResourceFarmed(string resourceId, address user, int256 x, int256 y);
     event NewResourcePosition(string resourceId, int256 x, int256 y);
 
     string[2] public resourceIds = ["wood", "stone"];
@@ -175,4 +175,15 @@ contract Farming {
         }
         emit ResourceFarmed(resourceId, msg.sender, x, y);
     }
+
+    function getResourceCount(address player) external view returns (ResourceCount[] memory) {
+        uint length = playerResources[player].length;
+        ResourceCount[] memory result = new ResourceCount[](length);
+
+        for (uint i = 0; i < length; i++) {
+            result[i] = playerResources[player][i];
+        }
+
+        return result;
+    }   
 }

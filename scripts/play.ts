@@ -8,8 +8,8 @@ const Key = TerminalGameIo.Key;
 
 // ========== CONFIG ==========
 // Replace with your deployed contract address
-const boardAddress = "0x5FbDB2315678afecb367f032d93F642f64180aa3";
-const farmingAddress = "0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512";
+const boardAddress = "0x20Dc424c5fa468CbB1c702308F0cC9c14DA2825C";
+const farmingAddress = "0x4653251486a57f90Ee89F9f34E098b9218659b83";
 
 const RPC_URL = "http://127.0.0.1:8545";
 
@@ -48,6 +48,7 @@ const farmingContract = new ethers.Contract(farmingAddress, farmingArtifact.abi,
 let myAddress: string;
 let positions: Record<string, { x: number; y: number }> = {};
 let resourcePositions: ResourcePosition[] = [];
+let leaderboard: {address: string, wood: number, stone: number}[] = [];
 
 // === Initialise ===
 async function initGame() {
@@ -62,6 +63,7 @@ async function initGame() {
 
   await getResourcePositions();
   await refreshPositions();
+  await getInitialLeaderboard();
 }
 
 // === Refresh all positions from chain ===
@@ -89,6 +91,7 @@ function frameHandler(instance: any) {
   let frameData = "";
 
   for (let y = -1; y <= BOARD_HEIGHT; y++) {
+    let line = ""
     for (let x = -1; x <= BOARD_WIDTH; x++) {
       let char = " ";
 
@@ -122,11 +125,21 @@ function frameHandler(instance: any) {
           }
         }
       }
-      frameData += char;
+      line += char;
     }
+
+    // Add leaderboard column at the right
+      if (y + 1 < leaderboard.length) {
+        const player = leaderboard[y + 1];
+        const leaderboardString = `   ${player.address.slice(0, 6)} | W:${mapToLeaderboard(player.wood)} S:${mapToLeaderboard(player.stone)}`;
+        line += leaderboardString;
+      }
+  
+    line = line.padEnd(100, " ");
+    frameData += line;
   }
 
-  instance.drawFrame(frameData, BOARD_WIDTH + 2, BOARD_HEIGHT + 2);
+  instance.drawFrame(frameData, 100, BOARD_HEIGHT + 2);
 }
 
 // === Handle movement ===
@@ -213,6 +226,25 @@ async function getResourcePositions() {
   }
 }
 
+async function getInitialLeaderboard() {
+  const players = await boardContract.getAllPlayers();
+  for (const player of players) {
+    const resources = await farmingContract.getResourceCount(player);
+    const leaderboardEntry = {address: player, wood: 0, stone: 0};
+    for (const resource of resources) {
+      leaderboardEntry[resource.resourceId] = resource.count;
+    }
+  }
+}
+
+function sortLeaderboard() {
+  leaderboard = leaderboard.sort((a, b) => {
+    const totalA = a.wood + a.stone;
+    const totalB = b.wood + b.stone;
+    return totalB - totalA;
+  });
+}
+
 function isIncludedInResourcePositions(resourceId: string, x: number, y: number) {
   for (const resourcePosition of resourcePositions) {
     if (resourcePosition.resourceId == resourceId 
@@ -245,3 +277,21 @@ try {
 farmingContract.on("NewResourcePosition", async () => {
   await getResourcePositions();
 })
+
+farmingContract.on("ResourceFarmed", (resourceId, address) => {
+  for (const player of leaderboard) {
+    if (player.address == address) {
+      player[resourceId]++;
+      return;
+    }
+  }
+  const newPlayer = {address: address, wood: 0, stone: 0};
+  newPlayer[resourceId]++;
+  leaderboard.push(newPlayer);
+
+  sortLeaderboard();
+})
+
+function mapToLeaderboard(value: number) {
+    return value.toString().padStart(4, "0");
+}
