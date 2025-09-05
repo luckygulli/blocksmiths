@@ -32,16 +32,23 @@ let posX = 0;
 let posY = 0;
 
 // ---------------------------
-// Initialize position on-chain
+// Initialize position on-chain or fetch existing
 // ---------------------------
 async function initializePosition() {
   try {
     await boardContract.initPosition(posX, posY);
     console.log(`Initialized position at (${posX}, ${posY})`);
   } catch (err: any) {
-    console.log("Position already initialized:", err.message);
+    console.log("Position already initialized, fetching from blockchain...");
+
+    // Fetch current position from the contract
+    const [x, y] = await boardContract.getPosition(signer.address);
+    posX = Number(x); // convert bigint to number
+    posY = Number(y);
+    console.log(`Current position: (${posX}, ${posY})`);
   }
 }
+
 
 // ---------------------------
 // Frame handler
