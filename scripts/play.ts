@@ -9,7 +9,8 @@ import TerminalGameIO from "terminal-game-io";
 const boardAddress = "0x0DCd1Bf9A1b36cE34237eEaFef220932846BCD82";
 const RPC_URL = "http://127.0.0.1:8545";
 const PRIVATE_KEY =
-  "0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80";
+  //"0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80";
+   "0x5de4111afa1a4b94908f83103eb1f1706367c2e68ca870fc3fb9a804cdab365a";
 
 const BOARD_WIDTH = 20;
 const BOARD_HEIGHT = 10;
