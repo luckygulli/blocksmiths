@@ -40,13 +40,29 @@ contract Farming {
         resources["wood"] = Resource("wood", "Wood", 3, 1);
         resources["stone"] = Resource("stone", "Stone", 2, 3);
 
-        resourcePositions["wood"].push(ResourcePosition("wood", 2, 3));
-        resourcePositions["wood"].push(ResourcePosition("wood", 5, 9));
-        resourcePositions["wood"].push(ResourcePosition("wood", 7, 3));
+        ResourcePosition memory pos;
 
-        resourcePositions["stone"].push(ResourcePosition("stone", 0, 0));
-        resourcePositions["stone"].push(ResourcePosition("stone", 10, 2));
+        pos = ResourcePosition("wood", 2, 3);
+        resourcePositions["wood"].push(pos);
+        emit NewResourcePosition(pos.resourceId, pos.x, pos.y);
+
+        pos = ResourcePosition("wood", 5, 9);
+        resourcePositions["wood"].push(pos);
+        emit NewResourcePosition(pos.resourceId, pos.x, pos.y);
+
+        pos = ResourcePosition("wood", 7, 3);
+        resourcePositions["wood"].push(pos);
+        emit NewResourcePosition(pos.resourceId, pos.x, pos.y);
+
+        pos = ResourcePosition("stone", 0, 0);
+        resourcePositions["stone"].push(pos);
+        emit NewResourcePosition(pos.resourceId, pos.x, pos.y);
+
+        pos = ResourcePosition("stone", 10, 2);
+        resourcePositions["stone"].push(pos);
+        emit NewResourcePosition(pos.resourceId, pos.x, pos.y);
     }
+
 
     function getResourceIDs() external view returns (string[] memory) {
         string[] memory result = new string[](resourceIds.length);
