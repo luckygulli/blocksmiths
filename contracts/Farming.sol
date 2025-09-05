@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.30;
+pragma solidity ^0.8.20;
 
 /// @title Farming Contract
 /// @notice Allows Players to farm resources and stores Players resources
