@@ -107,6 +107,7 @@ function drawFrame(instance: any, index: number) {
       // resources
       for (const res of resourcePositions) {
         if (res.x === x && res.y === y) {
+          console.log(res);
           char = res.resourceId === "wood" ? "w" : "s";
         }
       }

@@ -23,8 +23,8 @@ contract Farming {
         uint24 count;
     }
 
-    event ResourceFarmed(string indexed resourceId, address indexed user, int256 x, int256 y);
-    event NewResourcePosition(string indexed resourceId, int256 x, int256 y);
+    event ResourceFarmed(string resourceId, address indexed user, int256 x, int256 y);
+    event NewResourcePosition(string resourceId, int256 x, int256 y);
 
     string[2] public resourceIds = ["wood", "stone"];
     mapping(string => Resource) public resources;
