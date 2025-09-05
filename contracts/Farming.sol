@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.30;
+pragma solidity ^0.8.20;
 
 /// @title Farming Contract
 /// @notice Allows Players to farm resources and stores Players resources
@@ -37,11 +37,11 @@ contract Farming {
         resources["stone"] = Resource("stone", "Stone", 2, 3);
 
         resourcePositions["wood"].push(ResourcePosition("wood", 2, 3));
-        resourcePositions["wood"].push(ResourcePosition("wood", 5, 10));
-        resourcePositions["wood"].push(ResourcePosition("wood", 16, 3));
+        resourcePositions["wood"].push(ResourcePosition("wood", 5, 9));
+        resourcePositions["wood"].push(ResourcePosition("wood", 7, 3));
 
         resourcePositions["stone"].push(ResourcePosition("stone", 0, 0));
-        resourcePositions["stone"].push(ResourcePosition("stone", 100, 2));
+        resourcePositions["stone"].push(ResourcePosition("stone", 10, 2));
     }
 
     function getResourceIDs() external view returns (string[] memory) {
@@ -69,8 +69,14 @@ contract Farming {
         return false;
     }
 
-    function random() private view returns (int256) {
-        return int(block.prevrandao);
+    function random() private view returns (int256, int256) {
+        uint randX = uint(keccak256(abi.encodePacked(block.prevrandao, block.timestamp, msg.sender)));
+        int256 x = int256(randX % 20);
+
+        uint randY = uint(keccak256(abi.encodePacked(block.prevrandao, block.timestamp, msg.sender)));
+        int256 y = int256(randY % 10);
+
+        return (x, y);
     }
 
     function isPositionTaken(int x, int y) private view returns (bool) {
@@ -92,6 +98,20 @@ contract Farming {
         return resource; 
     }
 
+    function getResourcePositions() external view returns (ResourcePosition[] memory) {
+        ResourcePosition[] memory result = new ResourcePosition[](5);
+        uint pos = 0;
+        for (uint i = 0; i < resourceIds.length; i++) {
+            string memory resourceId = resourceIds[i];
+            for (uint j = 0; j < resourcePositions[resourceId].length; j++) {
+                ResourcePosition memory position = resourcePositions[resourceId][j];
+                result[pos++] = position;
+            }
+            
+        }
+        return result;
+    }
+
 
     function farm(string calldata resourceId, int256 x, int256 y) external {
         // validate that resource exists
@@ -104,11 +124,11 @@ contract Farming {
         require(index != resourcePositions[resourceId].length, "Resource position does not exist");
 
         // create new resource
-        int256 newX = random();
-        int256 newY = random();
+        int256 newX;
+        int256 newY;
+        (newX, newY) = random();
         while (isPositionTaken(newX, newY)) {
-            newX = random();
-            newY = random();
+            (newX, newY) = random();
         }
 
         resourcePositions[resourceId][index] = ResourcePosition(resourceId, newX, newY);

@@ -2,11 +2,13 @@ import { ethers } from "ethers";
 import fs from "fs";
 import path from "path";
 import TerminalGameIO from "terminal-game-io";
+import { ResourcePosition } from "./Farming.js";
 
 // ---------------------------
 // Config
 // ---------------------------
-const boardAddress = "0x5FbDB2315678afecb367f032d93F642f64180aa3";
+const boardAddress = "0x6e0a5725dD4071e46356bD974E13F35DbF9ef367";
+const farmingAddress = "0xA9d0Fb5837f9c42c874e16da96094b14Af0e2784";
 const RPC_URL = "http://127.0.0.1:8545";
 const PRIVATE_KEY =
   "0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80";
@@ -23,13 +25,21 @@ const signer = new ethers.Wallet(PRIVATE_KEY, provider);
 const artifact = JSON.parse(
   fs.readFileSync(path.join("artifacts/contracts/Board.sol/Board.json"), "utf8")
 );
+const farmingArtifact = JSON.parse(
+  fs.readFileSync(path.join("artifacts/contracts/Farming.sol/Farming.json"), "utf8")
+);
 const boardContract = new ethers.Contract(boardAddress, artifact.abi, signer);
+const farmingContract = new ethers.Contract(farmingAddress, farmingArtifact.abi, signer);
+
 
 // ---------------------------
 // Player state
 // ---------------------------
 let posX = 0;
 let posY = 0;
+
+// Resource positions
+let resourcePositions: ResourcePosition[] = [];
 
 // ---------------------------
 // Initialize position on-chain or fetch existing
@@ -49,6 +59,17 @@ async function initializePosition() {
   }
 }
 
+// ---------------------------
+// Get the current Resource positions
+// ---------------------------
+async function getResourcePositions() {
+    try {
+      resourcePositions = await farmingContract.getResourcePositions();
+    } catch (err: any) {
+    console.log("Something went wrong", err);
+  }
+}
+
 
 // ---------------------------
 // Frame handler
@@ -58,7 +79,15 @@ const frameHandler = (instance: any) => {
 
   for (let y = 0; y < BOARD_HEIGHT; y++) {
     for (let x = 0; x < BOARD_WIDTH; x++) {
-      frameData += posX === x && posY === y ? "@" : ".";
+      if (posX === x && posY === y) {
+        frameData += "@";
+      } else if (isIncludedInResourcePositions('wood', x, y)) {
+        frameData += "|";
+      } else if (isIncludedInResourcePositions('stone', x, y)) {
+        frameData += "o";
+      } else {
+        frameData += ".";
+      }
     }
   }
 
@@ -88,6 +117,9 @@ const keypressHandler = async (instance: any, keyName: string) => {
     case TerminalGameIO.Key.Escape:
       instance.exit();
       return;
+    case TerminalGameIO.Key.Space:
+      await farm();
+      return; 
   }
 
   try {
@@ -106,6 +138,7 @@ const keypressHandler = async (instance: any, keyName: string) => {
 // ---------------------------
 async function main() {
   await initializePosition();
+  await getResourcePositions();
 
   TerminalGameIO.createTerminalGameIo({
     fps: 2,
@@ -114,4 +147,41 @@ async function main() {
   });
 }
 
+// ---------------------------
+// Interact with Farming
+// ---------------------------
+async function farm() {
+  let type;
+  if (isIncludedInResourcePositions('wood', posX, posY)) {
+    type = 'wood'
+  } else if (isIncludedInResourcePositions('stone', posX, posY)) {
+    type = 'stone'
+  }
+  if (type == undefined) {
+    return;
+  }
+try {
+    await farmingContract.farm(type, posX, posY);
+  } catch (err: any) {
+    console.log("No Resource:", err.message);
+  }
+}
+
 main().catch(console.error);
+
+
+function isIncludedInResourcePositions(resourceId: string, x: number, y: number) {
+  for (const resourcePosition of resourcePositions) {
+    if (resourcePosition.resourceId == resourceId 
+      && resourcePosition.x == x
+      && resourcePosition.y == y
+    ) {
+      return true;
+    }
+  }
+  return false;
+}
+
+farmingContract.on("NewResourcePosition", async () => {
+  await getResourcePositions();
+})
