@@ -39,12 +39,14 @@ const frameHandler = (instance: any) => {
 
   for (let y = 0; y < BOARD_HEIGHT; y++) {
     for (let x = 0; x < BOARD_WIDTH; x++) {
-      frameData += posX === x && posY === y ? "🙂" : ".";
+      frameData += posX === x && posY === y ? "@" : ".";
     }
-    frameData += "\n";
   }
+
   instance.drawFrame(frameData, BOARD_WIDTH, BOARD_HEIGHT);
 };
+
+
 
 // ---------------------------
 // Key press handler
