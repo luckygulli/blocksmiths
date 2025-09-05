@@ -6,7 +6,7 @@ import TerminalGameIO from "terminal-game-io";
 // ---------------------------
 // Config
 // ---------------------------
-const boardAddress = "0x5FbDB2315678afecb367f032d93F642f64180aa3";
+const boardAddress = "0x0DCd1Bf9A1b36cE34237eEaFef220932846BCD82";
 const RPC_URL = "http://127.0.0.1:8545";
 const PRIVATE_KEY =
   "0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80";
@@ -35,6 +35,8 @@ let posY = 0;
 // Initialize position on-chain or fetch existing
 // ---------------------------
 async function initializePosition() {
+      console.log(`Trying to initialize position. Owner: ${signer.address}`);
+
   try {
     await boardContract.initPosition(posX, posY);
     console.log(`Initialized position at (${posX}, ${posY})`);

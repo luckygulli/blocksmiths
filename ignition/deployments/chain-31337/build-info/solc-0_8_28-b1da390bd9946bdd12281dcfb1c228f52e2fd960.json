@@ -1,0 +1,39 @@
+{
+  "_format": "hh3-sol-build-info-1",
+  "id": "solc-0_8_28-b1da390bd9946bdd12281dcfb1c228f52e2fd960",
+  "solcVersion": "0.8.28",
+  "solcLongVersion": "0.8.28+commit.7893614a",
+  "userSourceNameMap": {
+    "contracts/Board.sol": "project/contracts/Board.sol"
+  },
+  "input": {
+    "language": "Solidity",
+    "settings": {
+      "evmVersion": "cancun",
+      "optimizer": {
+        "enabled": true,
+        "runs": 200
+      },
+      "outputSelection": {
+        "*": {
+          "": [
+            "ast"
+          ],
+          "*": [
+            "abi",
+            "evm.bytecode",
+            "evm.deployedBytecode",
+            "evm.methodIdentifiers",
+            "metadata"
+          ]
+        }
+      },
+      "remappings": []
+    },
+    "sources": {
+      "project/contracts/Board.sol": {
+        "content": "// SPDX-License-Identifier: MIT\npragma solidity ^0.8.0;\n\n/// @title Board Contract\n/// @notice Stores positions of players, allows moving step by step\n/// @custom:dev-run-script ./scripts/boardScript.js\ncontract Board {\n    struct Position {\n        int256 x;\n        int256 y;\n        bool initialized;\n    }\n\n    mapping(address => Position) public positions;\n\n    event PositionSet(address indexed player, int256 x, int256 y);\n\n    function initPosition(int256 x, int256 y) external {\n        require(!positions[msg.sender].initialized, \"Already initialized\");\n        positions[msg.sender] = Position(x, y, true);\n        emit PositionSet(msg.sender, x, y);\n    }\n\n    function move(int256 newX, int256 newY) external {\n        Position storage pos = positions[msg.sender];\n        require(pos.initialized, \"Position not initialized\");\n\n        int256 dx = newX - pos.x;\n        int256 dy = newY - pos.y;\n\n        require((dx * dx + dy * dy) == 1, \"Invalid move: must be distance 1\");\n\n        pos.x = newX;\n        pos.y = newY;\n\n        emit PositionSet(msg.sender, newX, newY);\n    }\n\n    function getPosition(address player) external view returns (int256, int256) {\n        Position memory pos = positions[player];\n        require(pos.initialized, \"Player not initialized\");\n        return (pos.x, pos.y);\n    }\n}\n"
+      }
+    }
+  }
+}
