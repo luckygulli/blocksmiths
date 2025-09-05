@@ -1,45 +1,44 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.20;
+pragma solidity ^0.8.0;
 
+/// @title Board Contract
+/// @notice Stores positions of players, allows moving step by step
+/// @custom:dev-run-script ./scripts/boardScript.js
 contract Board {
     struct Position {
-        uint256 x;
-        uint256 y;
+        int256 x;
+        int256 y;
         bool initialized;
     }
 
     mapping(address => Position) public positions;
-    address[] public players;
 
-    // Event emitted when a player moves
-    event PlayerMoved(address indexed player, uint256 x, uint256 y);
+    event PositionSet(address indexed player, int256 x, int256 y);
 
-    function initPosition(uint256 x, uint256 y) public {
+    function initPosition(int256 x, int256 y) external {
         require(!positions[msg.sender].initialized, "Already initialized");
         positions[msg.sender] = Position(x, y, true);
-        players.push(msg.sender);
-        emit PlayerMoved(msg.sender, x, y);
+        emit PositionSet(msg.sender, x, y);
     }
 
-    function move(uint256 x, uint256 y) public {
+    function move(int256 newX, int256 newY) external {
         Position storage pos = positions[msg.sender];
-        require(pos.initialized, "Not initialized");
-        require(
-            (pos.x == x && (pos.y == y + 1 || pos.y == y - 1)) ||
-            (pos.y == y && (pos.x == x + 1 || pos.x == x - 1)),
-            "Can only move 1 step"
-        );
-        pos.x = x;
-        pos.y = y;
-        emit PlayerMoved(msg.sender, x, y);
+        require(pos.initialized, "Position not initialized");
+
+        int256 dx = newX - pos.x;
+        int256 dy = newY - pos.y;
+
+        require((dx * dx + dy * dy) == 1, "Invalid move: must be distance 1");
+
+        pos.x = newX;
+        pos.y = newY;
+
+        emit PositionSet(msg.sender, newX, newY);
     }
 
-    function getPosition(address player) public view returns (uint256 x, uint256 y) {
-        Position storage pos = positions[player];
+    function getPosition(address player) external view returns (int256, int256) {
+        Position memory pos = positions[player];
+        require(pos.initialized, "Player not initialized");
         return (pos.x, pos.y);
-    }
-
-    function getAllPlayers() public view returns (address[] memory) {
-        return players;
     }
 }
