@@ -8,8 +8,8 @@ const Key = TerminalGameIo.Key;
 
 // ========== CONFIG ==========
 // Replace with your deployed contract address
-const boardAddress = "0x930b218f3e63eE452c13561057a8d5E61367d5b7";
-const farmingAddress = "0x721d8077771Ebf9B931733986d619aceea412a1C";
+const boardAddress = "0x5FbDB2315678afecb367f032d93F642f64180aa3";
+const farmingAddress = "0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512";
 
 const RPC_URL = "http://127.0.0.1:8545";
 
