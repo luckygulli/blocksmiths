@@ -7,13 +7,11 @@ import { ResourcePosition } from "./Farming.js";
 const Key = TerminalGameIo.Key;
 
 // ========== CONFIG ==========
-// Replace with your deployed contract address
-const boardAddress = "0x20Dc424c5fa468CbB1c702308F0cC9c14DA2825C";
-const farmingAddress = "0x4653251486a57f90Ee89F9f34E098b9218659b83";
-
+const boardAddress = "0x5FbDB2315678afecb367f032d93F642f64180aa3";
+const farmingAddress = "0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512";
 const RPC_URL = "http://127.0.0.1:8545";
 
-// --- pick a random account from 0..4 ---
+// pick 2 different random accounts
 const accounts = [
   "0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80",
   "0x59c6995e998f97a5a0044966f0945389dc9e86dae88c7a8412f4603b6b78690d",
@@ -21,7 +19,16 @@ const accounts = [
   "0x7c852118294e51e653712a81e05800f419141751be58f605c371e15141b007a6",
   "0x47e179ec197488593b187f80a00eb0da91f1b9d0b13f8733639f19c30a34926a"
 ];
-const myPrivateKey = accounts[Math.floor(Math.random() * accounts.length)];
+const idx1 = Math.floor(Math.random() * accounts.length);
+const idx2 = (idx1 + Math.floor(Math.random() * (accounts.length - 1)) + 1) % accounts.length;
+
+const playerKeys = [accounts[idx1], accounts[idx2]];
+
+// Player controls
+const CONTROLS = [
+  { up: Key.ArrowUp, down: Key.ArrowDown, left: Key.ArrowLeft, right: Key.ArrowRight, farm: Key.Space },
+  { up: 'w', down: 's', left: 'a', right: 'd', farm: 'f' }
+];
 
 const BOARD_WIDTH = 20;
 const BOARD_HEIGHT = 10;
@@ -29,36 +36,29 @@ const FPS = 25;
 // ============================
 
 // Load ABI
-const artifact = JSON.parse(
-  fs.readFileSync(path.join("artifacts/contracts/Board.sol/Board.json"), "utf8")
-);
-const farmingArtifact = JSON.parse(
-  fs.readFileSync(path.join("artifacts/contracts/Farming.sol/Farming.json"), "utf8")
-);
+const artifact = JSON.parse(fs.readFileSync(path.join("artifacts/contracts/Board.sol/Board.json"), "utf8"));
+const farmingArtifact = JSON.parse(fs.readFileSync(path.join("artifacts/contracts/Farming.sol/Farming.json"), "utf8"));
 
-// Setup provider & signer
+// Setup provider & signers
 const provider = new ethers.JsonRpcProvider(RPC_URL);
-const signer = new ethers.Wallet(myPrivateKey, provider);
+const signers = playerKeys.map(pk => new ethers.Wallet(pk, provider));
 
-// Attach to contract
-const boardContract = new ethers.Contract(boardAddress, artifact.abi, signer);
-const farmingContract = new ethers.Contract(farmingAddress, farmingArtifact.abi, signer);
+// Attach to contracts
+const boardContracts = signers.map(s => new ethers.Contract(boardAddress, artifact.abi, s));
+const farmingContracts = signers.map(s => new ethers.Contract(farmingAddress, farmingArtifact.abi, s));
 
-
-let myAddress: string;
 let positions: Record<string, { x: number; y: number }> = {};
 let resourcePositions: ResourcePosition[] = [];
 let leaderboard: {address: string, wood: number, stone: number}[] = [];
+let playerAddresses: string[] = [];
 
 // === Initialise ===
 async function initGame() {
-  myAddress = await signer.getAddress();
+  playerAddresses = await Promise.all(signers.map(s => s.getAddress()));
 
-  try {
-    await boardContract.initPosition(0, 0);
-
-  } catch (err: any) {
-    // already initialized → ignore
+  // init positions for both players
+  for (let i = 0; i < boardContracts.length; i++) {
+    try { await boardContracts[i].initPosition(i, 0); } catch {}
   }
 
   await getResourcePositions();
@@ -68,21 +68,14 @@ async function initGame() {
 
 // === Refresh all positions from chain ===
 async function refreshPositions() {
-  const players: string[] = await boardContract.getAllPlayers();
-
+  const players: string[] = await boardContracts[0].getAllPlayers();
   const newPositions: Record<string, { x: number; y: number }> = {};
   for (const addr of players) {
     try {
-      const [x, y] = await boardContract.getPosition(addr);
-      newPositions[addr] = {
-        x: Number(x),
-        y: Number(y),
-      };
-    } catch {
-      // skip uninitialized players
-    }
+      const [x, y] = await boardContracts[0].getPosition(addr);
+      newPositions[addr] = { x: Number(x), y: Number(y) };
+    } catch {}
   }
-
   positions = newPositions;
 }
 
@@ -95,33 +88,21 @@ function frameHandler(instance: any) {
     for (let x = -1; x <= BOARD_WIDTH; x++) {
       let char = " ";
 
-      // corners
       if (y === -1 && x === -1) char = "┌";
       else if (y === -1 && x === BOARD_WIDTH) char = "┐";
       else if (y === BOARD_HEIGHT && x === -1) char = "└";
       else if (y === BOARD_HEIGHT && x === BOARD_WIDTH) char = "┘";
-
-      // top/bottom
       else if (y === -1 || y === BOARD_HEIGHT) char = "─";
-
-      // sides
       else if (x === -1 || x === BOARD_WIDTH) char = "│";
-
-      // inside board
       else {
         char = ".";
-        for (const resourcePosition of resourcePositions) {
-          if (x == resourcePosition.x && y == resourcePosition.y) {
-            if (resourcePosition.resourceId == 'wood') {
-              char = "w";
-            } else {
-              char = "s"
-            }
-          }
+        for (const r of resourcePositions) {
+          if (x == r.x && y == r.y) char = r.resourceId == 'wood' ? "w" : "s";
         }
         for (const [addr, pos] of Object.entries(positions)) {
           if (pos.x === x && pos.y === y) {
-            char = addr.toLowerCase() === myAddress.toLowerCase() ? "@" : "O";
+            const idx = playerAddresses.findIndex(a => a.toLowerCase() === addr.toLowerCase());
+            char = idx === 0 ? "@" : idx === 1 ? "O" : "X";
           }
         }
       }
@@ -144,45 +125,25 @@ function frameHandler(instance: any) {
 
 // === Handle movement ===
 async function keypressHandler(instance: any, keyName: string) {
-  const me = positions[myAddress];
-  let newX = me?.x ?? 0;
-  let newY = me?.y ?? 0;
+  for (let i = 0; i < CONTROLS.length; i++) {
+    const ctrl = CONTROLS[i];
+    const addr = playerAddresses[i];
+    const me = positions[addr];
+    let newX = me?.x ?? 0;
+    let newY = me?.y ?? 0;
 
-  switch (keyName) {
-    case Key.ArrowDown:
-      newY++;
-      break;
-    case Key.ArrowUp:
-      newY--;
-      break;
-    case Key.ArrowLeft:
-      newX--;
-      break;
-    case Key.ArrowRight:
-      newX++;
-      break;
-    case Key.Escape:
-      instance.exit();
-      return;
-    case Key.Space:
-      await farm(newX, newY);
-      return; 
-  }
+    if ([ctrl.up, ctrl.down, ctrl.left, ctrl.right, ctrl.farm].includes(keyName)) {
+      if (keyName === ctrl.up) newY--;
+      if (keyName === ctrl.down) newY++;
+      if (keyName === ctrl.left) newX--;
+      if (keyName === ctrl.right) newX++;
+      if (keyName === ctrl.farm) await farm(i, newX, newY);
 
-  // Boundary check before calling contract
-  if (
-    newX < 0 ||
-    newX >= BOARD_WIDTH ||
-    newY < 0 ||
-    newY >= BOARD_HEIGHT
-  ) {
-    return;
-  }
-
-  try {
-    await boardContract.move(newX, newY);
-  } catch (err) {
-    // invalid move → ignore
+      if (keyName !== ctrl.farm) {
+        if (newX < 0 || newX >= BOARD_WIDTH || newY < 0 || newY >= BOARD_HEIGHT) return;
+        try { await boardContracts[i].move(newX, newY); } catch {}
+      }
+    }
   }
 
   await refreshPositions();
@@ -195,39 +156,22 @@ async function main() {
 
   process.stdout.write("\x1b[2J\x1b[H");
 
-  const game = TerminalGameIo.createTerminalGameIo({
-    fps: FPS,
-    frameHandler,
-    keypressHandler,
-  });
+  const game = TerminalGameIo.createTerminalGameIo({ fps: FPS, frameHandler, keypressHandler });
 
-  // Update board whenever a PositionSet event is emitted
-  boardContract.on("PositionSet", async () => {
-    await refreshPositions();
-    frameHandler(game);
-  });
+  boardContracts[0].on("PositionSet", async () => { await refreshPositions(); frameHandler(game); });
+  boardContracts[1].on("PositionSet", async () => { await refreshPositions(); frameHandler(game); });
 
-  setInterval(async () => {
-    await refreshPositions();
-  }, 100); // refresh every 100ms
+  setInterval(async () => { await refreshPositions(); await getResourcePositions(); }, 100);
 }
 
 main().catch(console.error);
 
-
-// ---------------------------
-// Get the current Resource positions
 // ---------------------------
 async function getResourcePositions() {
-    try {
-      resourcePositions = await farmingContract.getResourcePositions();
-    } catch (err: any) {
-    console.log("Something went wrong", err);
-  }
+  try { resourcePositions = await farmingContracts[0].getResourcePositions(); } catch {}
 }
 
 async function getInitialLeaderboard() {
-  const players = await boardContract.getAllPlayers();
   for (const player of players) {
     const resources = await farmingContract.getResourceCount(player);
     const leaderboardEntry = {address: player, wood: 0, stone: 0};
@@ -245,40 +189,57 @@ function sortLeaderboard() {
   });
 }
 
-function isIncludedInResourcePositions(resourceId: string, x: number, y: number) {
-  for (const resourcePosition of resourcePositions) {
-    if (resourcePosition.resourceId == resourceId 
-      && resourcePosition.x == x
-      && resourcePosition.y == y
-    ) {
-      return true;
+async function getInitialLeaderboard() {
+  const players = await boardContract.getAllPlayers();
+  for (const player of playerAddresses) {
+    const resources = await farmingContract.getResourceCount(player);
+    const leaderboardEntry = {address: player, wood: 0, stone: 0};
+    for (const resource of resources) {
+      leaderboardEntry[resource.resourceId] = resource.count;
     }
   }
-  return false;
 }
 
-async function farm(x: number, y: number) {
-  let type;
-  if (isIncludedInResourcePositions('wood', x, y)) {
-    type = 'wood'
-  } else if (isIncludedInResourcePositions('stone', x, y)) {
-    type = 'stone'
-  }
-  if (type == undefined) {
-    return;
-  }
-try {
-    await farmingContract.farm(type, x, y);
-  } catch (err: any) {
-    console.log("No Resource:", err.message);
-  }
+function sortLeaderboard() {
+  leaderboard = leaderboard.sort((a, b) => {
+    const totalA = a.wood + a.stone;
+    const totalB = b.wood + b.stone;
+    return totalB - totalA;
+  });
 }
 
-farmingContract.on("NewResourcePosition", async () => {
-  await getResourcePositions();
+function isIncludedInResourcePositions(resourceId: string, x: number, y: number) {
+  return resourcePositions.some(r => r.resourceId == resourceId && r.x == x && r.y == y);
+}
+
+async function farm(playerIdx: number, x: number, y: number) {
+  let type: string | undefined;
+  if (isIncludedInResourcePositions('wood', x, y)) type = 'wood';
+  else if (isIncludedInResourcePositions('stone', x, y)) type = 'stone';
+  if (!type) return;
+
+  try { await farmingContracts[playerIdx].farm(type, x, y); } catch {}
+}
+
+farmingContracts[0].on("NewResourcePosition", async () => { await getResourcePositions(); });
+farmingContracts[1].on("NewResourcePosition", async () => { await getResourcePositions(); });
+
+
+farmingContracts[0].on("ResourceFarmed", (resourceId, address) => {
+  for (const player of leaderboard) {
+    if (player.address == address) {
+      player[resourceId]++;
+      return;
+    }
+  }
+  const newPlayer = {address: address, wood: 0, stone: 0};
+  newPlayer[resourceId]++;
+  leaderboard.push(newPlayer);
+
+  sortLeaderboard();
 })
 
-farmingContract.on("ResourceFarmed", (resourceId, address) => {
+farmingContracts[1].on("ResourceFarmed", (resourceId, address) => {
   for (const player of leaderboard) {
     if (player.address == address) {
       player[resourceId]++;

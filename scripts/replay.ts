@@ -100,30 +100,47 @@ function drawFrame(instance: any, index: number) {
   applyEvent(history[index]);
 
   let frameData = "";
-  for (let y = 0; y < BOARD_HEIGHT; y++) {
-    for (let x = 0; x < BOARD_WIDTH; x++) {
-      let char = ".";
 
-      // resources
-      for (const res of resourcePositions) {
-        if (res.x === x && res.y === y) {
-          console.log(res);
-          char = res.resourceId === "wood" ? "w" : "s";
+  for (let y = -1; y <= BOARD_HEIGHT; y++) {
+    for (let x = -1; x <= BOARD_WIDTH; x++) {
+      let char = " ";
+
+      // corners
+      if (y === -1 && x === -1) char = "┌";
+      else if (y === -1 && x === BOARD_WIDTH) char = "┐";
+      else if (y === BOARD_HEIGHT && x === -1) char = "└";
+      else if (y === BOARD_HEIGHT && x === BOARD_WIDTH) char = "┘";
+
+      // top/bottom
+      else if (y === -1 || y === BOARD_HEIGHT) char = "─";
+
+      // sides
+      else if (x === -1 || x === BOARD_WIDTH) char = "│";
+
+      // inside board
+      else {
+        char = ".";
+
+        // resources
+        for (const res of resourcePositions) {
+          if (res.x === x && res.y === y) {
+            char = res.resourceId === "wood" ? "w" : "s";
+          }
         }
-      }
 
-      // players
-      for (const pos of Object.values(positions)) {
-        if (pos.x === x && pos.y === y) {
-          char = "O";
+        // players
+        for (const pos of Object.values(positions)) {
+          if (pos.x === x && pos.y === y) {
+            char = "O";
+          }
         }
-      }
 
+      }
       frameData += char;
     }
   }
 
-  instance.drawFrame(frameData, BOARD_WIDTH, BOARD_HEIGHT);
+  instance.drawFrame(frameData, BOARD_WIDTH + 2, BOARD_HEIGHT + 2);
 }
 
 // ---------- Main ----------
