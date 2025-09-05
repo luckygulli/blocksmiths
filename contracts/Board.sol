@@ -1,44 +1,45 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.0;
+pragma solidity ^0.8.20;
 
-/// @title Board Contract
-/// @notice Stores positions of players, allows moving step by step
-/// @custom:dev-run-script ./scripts/boardScript.js
 contract Board {
     struct Position {
-        int256 x;
-        int256 y;
+        uint256 x;
+        uint256 y;
         bool initialized;
     }
 
     mapping(address => Position) public positions;
+    address[] public players;
 
-    event PositionSet(address indexed player, int256 x, int256 y);
+    // Event emitted when a player moves
+    event PlayerMoved(address indexed player, uint256 x, uint256 y);
 
-    function initPosition(int256 x, int256 y) external {
+    function initPosition(uint256 x, uint256 y) public {
         require(!positions[msg.sender].initialized, "Already initialized");
         positions[msg.sender] = Position(x, y, true);
-        emit PositionSet(msg.sender, x, y);
+        players.push(msg.sender);
+        emit PlayerMoved(msg.sender, x, y);
     }
 
-    function move(int256 newX, int256 newY) external {
+    function move(uint256 x, uint256 y) public {
         Position storage pos = positions[msg.sender];
-        require(pos.initialized, "Position not initialized");
-
-        int256 dx = newX - pos.x;
-        int256 dy = newY - pos.y;
-
-        require((dx * dx + dy * dy) == 1, "Invalid move: must be distance 1");
-
-        pos.x = newX;
-        pos.y = newY;
-
-        emit PositionSet(msg.sender, newX, newY);
+        require(pos.initialized, "Not initialized");
+        require(
+            (pos.x == x && (pos.y == y + 1 || pos.y == y - 1)) ||
+            (pos.y == y && (pos.x == x + 1 || pos.x == x - 1)),
+            "Can only move 1 step"
+        );
+        pos.x = x;
+        pos.y = y;
+        emit PlayerMoved(msg.sender, x, y);
     }
 
-    function getPosition(address player) external view returns (int256, int256) {
-        Position memory pos = positions[player];
-        require(pos.initialized, "Player not initialized");
+    function getPosition(address player) public view returns (uint256 x, uint256 y) {
+        Position storage pos = positions[player];
         return (pos.x, pos.y);
+    }
+
+    function getAllPlayers() public view returns (address[] memory) {
+        return players;
     }
 }
