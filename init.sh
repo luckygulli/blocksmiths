@@ -1,11 +1,5 @@
 #!/bin/bash
 
-# Installation
-npm install
-
-# Deploy contract
-npx hardhat ignition deploy ./ignition/modules/Board.ts --network localhost
-
 # Menu
 while true; do
     echo "=============================="
@@ -14,7 +8,10 @@ while true; do
     echo "1) Play the game"
     echo "2) Show replay"
     echo "3) Exit"
-    read -p "Enter your choice [1-3]: " choice
+    echo "=============================="
+    echo "4) [ADMIN] Install and launch Hardhat node"
+    echo "5) [ADMIN] Apply Contracts"
+    read -p "Enter your choice [1-5]: " choice
 
     case $choice in
         1)
@@ -27,6 +24,15 @@ while true; do
             echo "Exiting..."
             exit 0
             ;;
+        4)
+            npm install
+            npx hardhat node
+            exit 0
+            ;;
+        5)
+            npx hardhat ignition deploy ./ignition/modules/Board.ts --network localhost
+            ;;
+
         *)
             echo "Invalid choice, please try again."
             ;;
