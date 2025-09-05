@@ -11,7 +11,7 @@ npx hardhat ignition deploy ./ignition/modules/Board.ts --network hardhatMainnet
 
 # New Terminal:
 ##############npx hardhat node
-
+## Copy Contract Adress and initialised players
 
 
 # Run the game script
