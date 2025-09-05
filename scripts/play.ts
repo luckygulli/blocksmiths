@@ -8,8 +8,8 @@ const Key = TerminalGameIo.Key;
 
 // ========== CONFIG ==========
 // Replace with your deployed contract address
-const boardAddress = "0x5FbDB2315678afecb367f032d93F642f64180aa3";
-const farmingAddress = "0xA9d0Fb5837f9c42c874e16da96094b14Af0e2784";
+const boardAddress = "0x0DCd1Bf9A1b36cE34237eEaFef220932846BCD82";
+const farmingAddress = "0x96E303b6D807c0824E83f954784e2d6f3614f167";
 
 const RPC_URL = "http://127.0.0.1:8545";
 
@@ -126,7 +126,7 @@ async function keypressHandler(instance: any, keyName: string) {
       instance.exit();
       return;
     case Key.Space:
-      await farm();
+      await farm(newX, newY);
       return; 
   }
 
@@ -187,18 +187,18 @@ function isIncludedInResourcePositions(resourceId: string, x: number, y: number)
   return false;
 }
 
-async function farm() {
+async function farm(x: number, y: number) {
   let type;
-  if (isIncludedInResourcePositions('wood', posX, posY)) {
+  if (isIncludedInResourcePositions('wood', x, y)) {
     type = 'wood'
-  } else if (isIncludedInResourcePositions('stone', posX, posY)) {
+  } else if (isIncludedInResourcePositions('stone', x, y)) {
     type = 'stone'
   }
   if (type == undefined) {
     return;
   }
 try {
-    await farmingContract.farm(type, posX, posY);
+    await farmingContract.farm(type, x, y);
   } catch (err: any) {
     console.log("No Resource:", err.message);
   }
