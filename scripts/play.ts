@@ -112,7 +112,9 @@ function frameHandler(instance: any) {
     // Add leaderboard column at the right
       if (y + 1 < leaderboard.length) {
         const player = leaderboard[y + 1];
-        const leaderboardString = `   ${player.address.slice(0, 6)} | W:${mapToLeaderboard(player.wood)} S:${mapToLeaderboard(player.stone)}`;
+        const idx = playerAddresses.findIndex(a => a.toLowerCase() === player.address.toLowerCase());
+        const char = idx === 0 ? "@" : idx === 1 ? "O" : "X";
+        const leaderboardString = `   ${char} | W:${mapToLeaderboard(player.wood)} S:${mapToLeaderboard(player.stone)}`;
         line += leaderboardString;
       }
   
@@ -212,6 +214,7 @@ farmingContracts[0].on("ResourceFarmed", (resourceId, address) => {
   for (const player of leaderboard) {
     if (player.address == address) {
       player[resourceId]++;
+      sortLeaderboard();
       return;
     }
   }
