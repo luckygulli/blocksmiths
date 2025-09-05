@@ -8,8 +8,8 @@ const Key = TerminalGameIo.Key;
 
 // ========== CONFIG ==========
 // Replace with your deployed contract address
-const boardAddress = "0x5FbDB2315678afecb367f032d93F642f64180aa3";
-const farmingAddress = "0xA9d0Fb5837f9c42c874e16da96094b14Af0e2784";
+const boardAddress = "0x930b218f3e63eE452c13561057a8d5E61367d5b7";
+const farmingAddress = "0x721d8077771Ebf9B931733986d619aceea412a1C";
 
 const RPC_URL = "http://127.0.0.1:8545";
 
@@ -55,12 +55,12 @@ async function initGame() {
 
   try {
     await boardContract.initPosition(0, 0);
-    await getResourcePositions();
 
   } catch (err: any) {
     // already initialized → ignore
   }
 
+  await getResourcePositions();
   await refreshPositions();
 }
 
@@ -91,6 +91,15 @@ function frameHandler(instance: any) {
   for (let y = 0; y < BOARD_HEIGHT; y++) {
     for (let x = 0; x < BOARD_WIDTH; x++) {
       let char = ".";
+      for (const resourcePosition of resourcePositions) {
+        if (x == resourcePosition.x && y == resourcePosition.y) {
+          if (resourcePosition.resourceId == 'wood') {
+            char = "w";
+          } else {
+            char = "s"
+          }
+        }
+      }
       for (const [addr, pos] of Object.entries(positions)) {
         if (pos.x === x && pos.y === y) {
           char = addr.toLowerCase() === myAddress.toLowerCase() ? "@" : "O";
@@ -126,7 +135,7 @@ async function keypressHandler(instance: any, keyName: string) {
       instance.exit();
       return;
     case Key.Space:
-      await farm();
+      await farm(newX, newY);
       return; 
   }
 
@@ -189,18 +198,18 @@ function isIncludedInResourcePositions(resourceId: string, x: number, y: number)
   return false;
 }
 
-async function farm() {
+async function farm(x: number, y: number) {
   let type;
-  if (isIncludedInResourcePositions('wood', posX, posY)) {
+  if (isIncludedInResourcePositions('wood', x, y)) {
     type = 'wood'
-  } else if (isIncludedInResourcePositions('stone', posX, posY)) {
+  } else if (isIncludedInResourcePositions('stone', x, y)) {
     type = 'stone'
   }
   if (type == undefined) {
     return;
   }
 try {
-    await farmingContract.farm(type, posX, posY);
+    await farmingContract.farm(type, x, y);
   } catch (err: any) {
     console.log("No Resource:", err.message);
   }
