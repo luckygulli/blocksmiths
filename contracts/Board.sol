@@ -2,7 +2,6 @@
 pragma solidity ^0.8.0;
 
 /// @title Board Contract
-/// @notice Stores positions of players, allows moving step by step
 /// @custom:dev-run-script ./scripts/boardScript.js
 contract Board {
     struct Position {
@@ -12,15 +11,19 @@ contract Board {
     }
 
     mapping(address => Position) public positions;
-    address[] private players; // ✅ minimal addition
+    address[] private players;
 
     event PositionSet(address indexed player, int256 x, int256 y);
 
+    // Board dimensions (must match frontend constants)
+    int256 public constant BOARD_WIDTH = 20;
+    int256 public constant BOARD_HEIGHT = 10;
+
     function initPosition(int256 x, int256 y) external {
         require(!positions[msg.sender].initialized, "Already initialized");
-        positions[msg.sender] = Position(x, y, true);
+        require(_isWithinBounds(x, y), "Out of bounds");
 
-        // ✅ record this player once
+        positions[msg.sender] = Position(x, y, true);
         players.push(msg.sender);
 
         emit PositionSet(msg.sender, x, y);
@@ -34,6 +37,7 @@ contract Board {
         int256 dy = newY - pos.y;
 
         require((dx * dx + dy * dy) == 1, "Invalid move: must be distance 1");
+        require(_isWithinBounds(newX, newY), "Out of bounds");
 
         pos.x = newX;
         pos.y = newY;
@@ -47,8 +51,12 @@ contract Board {
         return (pos.x, pos.y);
     }
 
-    // ✅ minimal addition to expose player list
     function getAllPlayers() external view returns (address[] memory) {
         return players;
+    }
+
+    // Internal helper
+    function _isWithinBounds(int256 x, int256 y) internal pure returns (bool) {
+        return (x >= 0 && x < BOARD_WIDTH && y >= 0 && y < BOARD_HEIGHT);
     }
 }

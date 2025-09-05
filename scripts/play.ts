@@ -8,8 +8,8 @@ const Key = TerminalGameIo.Key;
 
 // ========== CONFIG ==========
 // Replace with your deployed contract address
-const boardAddress = "0x930b218f3e63eE452c13561057a8d5E61367d5b7";
-const farmingAddress = "0x721d8077771Ebf9B931733986d619aceea412a1C";
+const boardAddress = "0x5FbDB2315678afecb367f032d93F642f64180aa3";
+const farmingAddress = "0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512";
 
 const RPC_URL = "http://127.0.0.1:8545";
 
@@ -88,28 +88,45 @@ async function refreshPositions() {
 function frameHandler(instance: any) {
   let frameData = "";
 
-  for (let y = 0; y < BOARD_HEIGHT; y++) {
-    for (let x = 0; x < BOARD_WIDTH; x++) {
-      let char = ".";
-      for (const resourcePosition of resourcePositions) {
-        if (x == resourcePosition.x && y == resourcePosition.y) {
-          if (resourcePosition.resourceId == 'wood') {
-            char = "w";
-          } else {
-            char = "s"
+  for (let y = -1; y <= BOARD_HEIGHT; y++) {
+    for (let x = -1; x <= BOARD_WIDTH; x++) {
+      let char = " ";
+
+      // corners
+      if (y === -1 && x === -1) char = "┌";
+      else if (y === -1 && x === BOARD_WIDTH) char = "┐";
+      else if (y === BOARD_HEIGHT && x === -1) char = "└";
+      else if (y === BOARD_HEIGHT && x === BOARD_WIDTH) char = "┘";
+
+      // top/bottom
+      else if (y === -1 || y === BOARD_HEIGHT) char = "─";
+
+      // sides
+      else if (x === -1 || x === BOARD_WIDTH) char = "│";
+
+      // inside board
+      else {
+        char = ".";
+        for (const resourcePosition of resourcePositions) {
+          if (x == resourcePosition.x && y == resourcePosition.y) {
+            if (resourcePosition.resourceId == 'wood') {
+              char = "w";
+            } else {
+              char = "s"
+            }
           }
         }
-      }
-      for (const [addr, pos] of Object.entries(positions)) {
-        if (pos.x === x && pos.y === y) {
-          char = addr.toLowerCase() === myAddress.toLowerCase() ? "@" : "O";
+        for (const [addr, pos] of Object.entries(positions)) {
+          if (pos.x === x && pos.y === y) {
+            char = addr.toLowerCase() === myAddress.toLowerCase() ? "@" : "O";
+          }
         }
       }
       frameData += char;
     }
   }
 
-  instance.drawFrame(frameData, BOARD_WIDTH, BOARD_HEIGHT);
+  instance.drawFrame(frameData, BOARD_WIDTH + 2, BOARD_HEIGHT + 2);
 }
 
 // === Handle movement ===
@@ -137,6 +154,16 @@ async function keypressHandler(instance: any, keyName: string) {
     case Key.Space:
       await farm(newX, newY);
       return; 
+  }
+
+  // Boundary check before calling contract
+  if (
+    newX < 0 ||
+    newX >= BOARD_WIDTH ||
+    newY < 0 ||
+    newY >= BOARD_HEIGHT
+  ) {
+    return;
   }
 
   try {
