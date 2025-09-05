@@ -58,7 +58,7 @@ async function initGame() {
 
   // init positions for both players
   for (let i = 0; i < boardContracts.length; i++) {
-    try { await boardContracts[i].initPosition(i, 0); } catch {}
+    try { await boardContracts[i].initPosition(i, 0); } catch { }
   }
 
   await getResourcePositions();
@@ -74,7 +74,7 @@ async function refreshPositions() {
     try {
       const [x, y] = await boardContracts[0].getPosition(addr);
       newPositions[addr] = { x: Number(x), y: Number(y) };
-    } catch {}
+    } catch { }
   }
   positions = newPositions;
 }
@@ -141,11 +141,13 @@ async function keypressHandler(instance: any, keyName: string) {
 
       if (keyName !== ctrl.farm) {
         if (newX < 0 || newX >= BOARD_WIDTH || newY < 0 || newY >= BOARD_HEIGHT) return;
-        try { await boardContracts[i].move(newX, newY); } catch {}
+        try { await boardContracts[i].move(newX, newY); } catch { }
       }
+    } else if (keyName === Key.Escape) {
+      instance.exit();
+      return;
     }
   }
-
   await refreshPositions();
   frameHandler(instance);
 }
@@ -168,7 +170,7 @@ main().catch(console.error);
 
 // ---------------------------
 async function getResourcePositions() {
-  try { resourcePositions = await farmingContracts[0].getResourcePositions(); } catch {}
+  try { resourcePositions = await farmingContracts[0].getResourcePositions(); } catch { }
 }
 
 async function getInitialLeaderboard() {
@@ -199,7 +201,7 @@ async function farm(playerIdx: number, x: number, y: number) {
   else if (isIncludedInResourcePositions('stone', x, y)) type = 'stone';
   if (!type) return;
 
-  try { await farmingContracts[playerIdx].farm(type, x, y); } catch {}
+  try { await farmingContracts[playerIdx].farm(type, x, y); } catch { }
 }
 
 farmingContracts[0].on("NewResourcePosition", async () => { await getResourcePositions(); });
