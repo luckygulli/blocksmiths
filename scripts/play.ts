@@ -153,7 +153,7 @@ async function keypressHandler(instance: any, keyName: string) {
       return;
     case Key.Space:
       await farm(newX, newY);
-      return; 
+      return;
   }
 
   // Boundary check before calling contract
@@ -196,6 +196,8 @@ async function main() {
 
   setInterval(async () => {
     await refreshPositions();
+    await getResourcePositions();
+
   }, 100); // refresh every 100ms
 }
 
@@ -206,16 +208,16 @@ main().catch(console.error);
 // Get the current Resource positions
 // ---------------------------
 async function getResourcePositions() {
-    try {
-      resourcePositions = await farmingContract.getResourcePositions();
-    } catch (err: any) {
+  try {
+    resourcePositions = await farmingContract.getResourcePositions();
+  } catch (err: any) {
     console.log("Something went wrong", err);
   }
 }
 
 function isIncludedInResourcePositions(resourceId: string, x: number, y: number) {
   for (const resourcePosition of resourcePositions) {
-    if (resourcePosition.resourceId == resourceId 
+    if (resourcePosition.resourceId == resourceId
       && resourcePosition.x == x
       && resourcePosition.y == y
     ) {
@@ -235,7 +237,7 @@ async function farm(x: number, y: number) {
   if (type == undefined) {
     return;
   }
-try {
+  try {
     await farmingContract.farm(type, x, y);
   } catch (err: any) {
     console.log("No Resource:", err.message);
