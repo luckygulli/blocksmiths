@@ -7,8 +7,8 @@ import { ResourcePosition } from "./Farming.js";
 const Key = TerminalGameIo.Key;
 
 // ========== CONFIG ==========
-const boardAddress = "0x72662E4da74278430123cE51405c1e7A1B87C294";
-const farmingAddress = "0x52bad4A8584909895C22bdEcf8DBF33314468Fb0";
+const boardAddress = "0x5FbDB2315678afecb367f032d93F642f64180aa3";
+const farmingAddress = "0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512";
 const RPC_URL = "http://127.0.0.1:8545";
 
 // pick 2 different random accounts
@@ -118,11 +118,11 @@ function frameHandler(instance: any) {
         line += leaderboardString;
       }
   
-    line = line.padEnd(100, " ");
+    line = line.padEnd(50, " ");
     frameData += line;
   }
 
-  instance.drawFrame(frameData, 100, BOARD_HEIGHT + 2);
+  instance.drawFrame(frameData, 50, BOARD_HEIGHT + 2);
 }
 
 // === Handle movement ===

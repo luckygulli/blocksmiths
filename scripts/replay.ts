@@ -163,11 +163,11 @@ function drawFrame(instance: any, index: number) {
       line += leaderboardStr;
     }
 
-    frameData += line.padEnd(100, " ");
+    frameData += line.padEnd(50, " ");
 
   }
 
-  instance.drawFrame(frameData, 100, BOARD_HEIGHT + 2);
+  instance.drawFrame(frameData, 50, BOARD_HEIGHT + 2);
 }
 
 function mapToLeaderboard(value: number) {
